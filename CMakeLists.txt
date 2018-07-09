@@ -1845,3 +1845,12 @@ if(NOT TARGET uninstall)
   add_custom_target(uninstall
       COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
 endif()
+
+
+add_custom_command(TARGET SDL2-static POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/SDL2d.lib" "${CMAKE_SOURCE_DIR}/../m2o/m2o-reborn/vendor/sdl/Debug/SDL2.lib"
+)
+
+# add_custom_command(TARGET SDL2-static POST_BUILD
+#     COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/SDL2.lib" "${CMAKE_SOURCE_DIR}/../m2o/m2o-reborn/vendor/sdl/Release/SDL2.lib"
+# )

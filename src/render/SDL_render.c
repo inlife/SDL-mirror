@@ -2231,4 +2231,111 @@ SDL_GetBlendModeAlphaOperation(SDL_BlendMode blendMode)
     return (SDL_BlendOperation)(((Uint32)blendMode >> 16) & 0xF);
 }
 
+
+SDL_Renderer *
+D3D_WrapRenderer(unsigned int Adapter, unsigned int DeviceType, void *hFocusWindow, unsigned long BehaviorFlags, void *pPresentationParameters, void *pDeviceInterface);
+SDL_Renderer * SDLCALL SDL_CreateWrapperForRenderer(unsigned int Adapter, unsigned int DeviceType, void *hFocusWindow, unsigned long BehaviorFlags, void *pPresentationParameters, void *pDeviceInterface)
+{
+    SDL_Renderer *renderer = NULL;
+    int n = SDL_GetNumRenderDrivers();
+    const char *hint;
+
+    // if (!window) {
+    //     SDL_SetError("Invalid window");
+    //     return NULL;
+    // }
+
+    // if (SDL_GetRenderer(window)) {
+    //     SDL_SetError("Renderer already associated with window");
+    //     return NULL;
+    // }
+
+    // if (SDL_GetHint(SDL_HINT_RENDER_VSYNC)) {
+    //     if (SDL_GetHintBoolean(SDL_HINT_RENDER_VSYNC, SDL_TRUE)) {
+    //         flags |= SDL_RENDERER_PRESENTVSYNC;
+    //     } else {
+    //         flags &= ~SDL_RENDERER_PRESENTVSYNC;
+    //     }
+    // }
+
+    // if (index < 0) {
+    //     hint = SDL_GetHint(SDL_HINT_RENDER_DRIVER);
+    //     if (hint) {
+    //         for (index = 0; index < n; ++index) {
+    //             const SDL_RenderDriver *driver = render_drivers[index];
+
+    //             if (SDL_strcasecmp(hint, driver->info.name) == 0) {
+    //                 /* Create a new renderer instance */
+    //                 renderer = driver->CreateRenderer(window, flags);
+    //                 break;
+    //             }
+    //         }
+    //     }
+
+    //     if (!renderer) {
+    //         for (index = 0; index < n; ++index) {
+    //             const SDL_RenderDriver *driver = render_drivers[index];
+
+    //             if ((driver->info.flags & flags) == flags) {
+    //                  // Create a new renderer instance
+    //                 renderer = driver->CreateRenderer(window, flags);
+    //                 if (renderer) {
+    //                     /* Yay, we got one! */
+    //                     break;
+    //                 }
+    //             }
+    //         }
+    //     }
+    //     if (index == n) {
+    //         SDL_SetError("Couldn't find matching render driver");
+    //         return NULL;
+    //     }
+    // } else {
+    //     if (index >= SDL_GetNumRenderDrivers()) {
+    //         SDL_SetError("index must be -1 or in the range of 0 - %d",
+    //                      SDL_GetNumRenderDrivers() - 1);
+    //         return NULL;
+    //     }
+    //     /* Create a new renderer instance */
+    //     renderer = render_drivers[index]->CreateRenderer(window, flags);
+    // }
+
+    renderer = D3D_WrapRenderer(Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, pDeviceInterface);
+
+    if (renderer) {
+        renderer->magic = &renderer_magic;
+        // renderer->window = window;
+        renderer->scale.x = 1.0f;
+        renderer->scale.y = 1.0f;
+        renderer->dpi_scale.x = 1.0f;
+        renderer->dpi_scale.y = 1.0f;
+
+        // if (window && renderer->GetOutputSize) {
+        //     int window_w, window_h;
+        //     int output_w, output_h;
+        //     if (renderer->GetOutputSize(renderer, &output_w, &output_h) == 0) {
+        //         SDL_GetWindowSize(renderer->window, &window_w, &window_h);
+        //         renderer->dpi_scale.x = (float)window_w / output_w;
+        //         renderer->dpi_scale.y = (float)window_h / output_h;
+        //     }
+        // }
+
+        // if (SDL_GetWindowFlags(window) & (SDL_WINDOW_HIDDEN|SDL_WINDOW_MINIMIZED)) {
+        //     renderer->hidden = SDL_TRUE;
+        // } else {
+        //     renderer->hidden = SDL_FALSE;
+        // }
+
+        // SDL_SetWindowData(window, SDL_WINDOWRENDERDATA, renderer);
+
+        SDL_RenderSetViewport(renderer, NULL);
+
+        SDL_AddEventWatch(SDL_RendererEventWatch, renderer);
+
+        SDL_LogInfo(SDL_LOG_CATEGORY_RENDER,
+                    "Created renderer: %s", renderer->info.name);
+    }
+    return renderer;
+}
+
 /* vi: set ts=4 sw=4 expandtab: */

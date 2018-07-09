@@ -174,6 +174,11 @@ extern DECLSPEC int SDLCALL SDL_CreateWindowAndRenderer(
                                 SDL_Window **window, SDL_Renderer **renderer);
 
 
+extern DECLSPEC SDL_Renderer * SDLCALL SDL_CreateWrapperForRenderer(
+                                unsigned int Adapter, unsigned int DeviceType,
+                                void *hFocusWindow, unsigned long BehaviorFlags,
+                                void *pPresentationParameters, void *pDeviceInterface);
+
 /**
  *  \brief Create a 2D rendering context for a window.
  *

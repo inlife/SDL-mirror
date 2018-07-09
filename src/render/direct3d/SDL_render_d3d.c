@@ -415,19 +415,19 @@ D3D_ActivateRenderer(SDL_Renderer * renderer)
 
         data->updateSize = SDL_FALSE;
     }
-    if (data->beginScene) {
-        result = IDirect3DDevice9_BeginScene(data->device);
-        if (result == D3DERR_DEVICELOST) {
-            if (D3D_Reset(renderer) < 0) {
-                return -1;
-            }
-            result = IDirect3DDevice9_BeginScene(data->device);
-        }
-        if (FAILED(result)) {
-            return D3D_SetError("BeginScene()", result);
-        }
-        data->beginScene = SDL_FALSE;
-    }
+    // if (data->beginScene) {
+    //     result = IDirect3DDevice9_BeginScene(data->device);
+    //     if (result == D3DERR_DEVICELOST) {
+    //         if (D3D_Reset(renderer) < 0) {
+    //             return -1;
+    //         }
+    //         result = IDirect3DDevice9_BeginScene(data->device);
+    //     }
+    //     if (FAILED(result)) {
+    //         return D3D_SetError("BeginScene()", result);
+    //     }
+    //     data->beginScene = SDL_FALSE;
+    // }
     return 0;
 }
 
@@ -1724,10 +1724,10 @@ D3D_RenderPresent(SDL_Renderer * renderer)
     D3D_RenderData *data = (D3D_RenderData *) renderer->driverdata;
     HRESULT result;
 
-    if (!data->beginScene) {
-        IDirect3DDevice9_EndScene(data->device);
-        data->beginScene = SDL_TRUE;
-    }
+    // if (!data->beginScene) {
+    //     IDirect3DDevice9_EndScene(data->device);
+    //     data->beginScene = SDL_TRUE;
+    // }
 
     result = IDirect3DDevice9_TestCooperativeLevel(data->device);
     if (result == D3DERR_DEVICELOST) {
@@ -1821,5 +1821,188 @@ SDL_RenderGetD3D9Device(SDL_Renderer * renderer)
     return device;
 }
 #endif /* __WIN32__ */
+
+int D3D_GetOutputSize(SDL_Renderer * renderer, int *w, int *h) {
+    *w = (int)((D3D_RenderData *)renderer->driverdata)->pparams.BackBufferWidth;
+    *h = (int)((D3D_RenderData *)renderer->driverdata)->pparams.BackBufferHeight;
+    return 0;
+}
+
+SDL_Renderer *
+D3D_WrapRenderer(UINT Adapter, UINT DeviceType, HWND hFocusWindow, DWORD BehaviorFlags, void *pPresentationParameters, void *pDeviceInterface)
+{
+    SDL_Renderer *renderer;
+    D3D_RenderData *data;
+    SDL_SysWMinfo windowinfo;
+    HRESULT result;
+    D3DPRESENT_PARAMETERS pparams;
+    IDirect3DSwapChain9 *chain;
+    D3DCAPS9 caps;
+    DWORD device_flags;
+    Uint32 window_flags;
+    int w, h;
+    SDL_DisplayMode fullscreen_mode;
+    int displayIndex;
+
+    renderer = (SDL_Renderer *) SDL_calloc(1, sizeof(*renderer));
+    if (!renderer) {
+        SDL_OutOfMemory();
+        return NULL;
+    }
+
+    data = (D3D_RenderData *) SDL_calloc(1, sizeof(*data));
+    if (!data) {
+        SDL_free(renderer);
+        SDL_OutOfMemory();
+        return NULL;
+    }
+
+    // if (!D3D_LoadDLL(&data->d3dDLL, &data->d3d)) {
+    //     SDL_free(renderer);
+    //     SDL_free(data);
+    //     SDL_SetError("Unable to create Direct3D interface");
+    //     return NULL;
+    // }
+
+    renderer->WindowEvent = D3D_WindowEvent;
+    renderer->SupportsBlendMode = D3D_SupportsBlendMode;
+    renderer->CreateTexture = D3D_CreateTexture;
+    renderer->UpdateTexture = D3D_UpdateTexture;
+    renderer->UpdateTextureYUV = D3D_UpdateTextureYUV;
+    renderer->LockTexture = D3D_LockTexture;
+    renderer->UnlockTexture = D3D_UnlockTexture;
+    renderer->SetRenderTarget = D3D_SetRenderTarget;
+    renderer->UpdateViewport = D3D_UpdateViewport;
+    renderer->UpdateClipRect = D3D_UpdateClipRect;
+    renderer->RenderClear = D3D_RenderClear;
+    renderer->RenderDrawPoints = D3D_RenderDrawPoints;
+    renderer->RenderDrawLines = D3D_RenderDrawLines;
+    renderer->RenderFillRects = D3D_RenderFillRects;
+    renderer->RenderCopy = D3D_RenderCopy;
+    renderer->RenderCopyEx = D3D_RenderCopyEx;
+    renderer->RenderReadPixels = D3D_RenderReadPixels;
+    renderer->RenderPresent = D3D_RenderPresent;
+    renderer->DestroyTexture = D3D_DestroyTexture;
+    renderer->DestroyRenderer = D3D_DestroyRenderer;
+    renderer->info = D3D_RenderDriver.info;
+    renderer->info.flags = (SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE);
+    renderer->driverdata = data;
+    renderer->GetOutputSize = D3D_GetOutputSize;
+
+    SDL_VERSION(&windowinfo.version);
+    // SDL_GetWindowWMInfo(window, &windowinfo);
+
+    // window_flags = SDL_GetWindowFlags(window);
+    // SDL_GetWindowSize(window, &w, &h);
+    // SDL_GetWindowDisplayMode(window, &fullscreen_mode);
+
+    // SDL_zero(pparams);
+    // pparams.hDeviceWindow = windowinfo.info.win.window;
+    // pparams.BackBufferWidth = w;
+    // pparams.BackBufferHeight = h;
+    // pparams.BackBufferCount = 1;
+    // pparams.SwapEffect = D3DSWAPEFFECT_DISCARD;
+
+    // if (window_flags & SDL_WINDOW_FULLSCREEN && (window_flags & SDL_WINDOW_FULLSCREEN_DESKTOP) != SDL_WINDOW_FULLSCREEN_DESKTOP) {
+    //     pparams.Windowed = FALSE;
+    //     pparams.BackBufferFormat = PixelFormatToD3DFMT(fullscreen_mode.format);
+    //     pparams.FullScreen_RefreshRateInHz = fullscreen_mode.refresh_rate;
+    // } else {
+    //     pparams.Windowed = TRUE;
+    //     pparams.BackBufferFormat = D3DFMT_UNKNOWN;
+    //     pparams.FullScreen_RefreshRateInHz = 0;
+    // }
+    // if (flags & SDL_RENDERER_PRESENTVSYNC) {
+    //     pparams.PresentationInterval = D3DPRESENT_INTERVAL_ONE;
+    // } else {
+    //     pparams.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
+    // }
+
+    /* Get the adapter for the display that the window is on */
+    // displayIndex = SDL_GetWindowDisplayIndex(window);
+    // data->adapter = SDL_Direct3D9GetAdapterIndex(displayIndex);
+
+    data->adapter = Adapter;
+    data->device = pDeviceInterface;
+	pparams = *(D3DPRESENT_PARAMETERS *)pPresentationParameters;
+
+    // IDirect3D9_GetDeviceCaps(data->d3d, data->adapter, D3DDEVTYPE_HAL, &caps);
+
+    // device_flags = D3DCREATE_FPU_PRESERVE;
+    // if (caps.DevCaps & D3DDEVCAPS_HWTRANSFORMANDLIGHT) {
+    //     device_flags |= D3DCREATE_HARDWARE_VERTEXPROCESSING;
+    // } else {
+    //     device_flags |= D3DCREATE_SOFTWARE_VERTEXPROCESSING;
+    // }
+
+    // if (SDL_GetHintBoolean(SDL_HINT_RENDER_DIRECT3D_THREADSAFE, SDL_FALSE)) {
+    //     device_flags |= D3DCREATE_MULTITHREADED;
+    // }
+
+    // result = IDirect3D9_CreateDevice(data->d3d, data->adapter,
+    //                                  D3DDEVTYPE_HAL,
+    //                                  pparams.hDeviceWindow,
+    //                                  device_flags,
+    //                                  &pparams, &data->device);
+    // if (FAILED(result)) {
+    //     D3D_DestroyRenderer(renderer);
+    //     D3D_SetError("CreateDevice()", result);
+    //     return NULL;
+    // }
+
+    /* Get presentation parameters to fill info */
+    result = IDirect3DDevice9_GetSwapChain(data->device, 0, &chain);
+    if (FAILED(result)) {
+        D3D_DestroyRenderer(renderer);
+        D3D_SetError("GetSwapChain()", result);
+        return NULL;
+    }
+    result = IDirect3DSwapChain9_GetPresentParameters(chain, &pparams);
+    if (FAILED(result)) {
+        IDirect3DSwapChain9_Release(chain);
+        D3D_DestroyRenderer(renderer);
+        D3D_SetError("GetPresentParameters()", result);
+        return NULL;
+    }
+    IDirect3DSwapChain9_Release(chain);
+    if (pparams.PresentationInterval == D3DPRESENT_INTERVAL_ONE) {
+        renderer->info.flags |= SDL_RENDERER_PRESENTVSYNC;
+    }
+    data->pparams = pparams;
+
+    IDirect3DDevice9_GetDeviceCaps(data->device, &caps);
+    renderer->info.max_texture_width = caps.MaxTextureWidth;
+    renderer->info.max_texture_height = caps.MaxTextureHeight;
+    if (caps.NumSimultaneousRTs >= 2) {
+        renderer->info.flags |= SDL_RENDERER_TARGETTEXTURE;
+    }
+
+    if (caps.PrimitiveMiscCaps & D3DPMISCCAPS_SEPARATEALPHABLEND) {
+        data->enableSeparateAlphaBlend = SDL_TRUE;
+    }
+
+    /* Store the default render target */
+    IDirect3DDevice9_GetRenderTarget(data->device, 0, &data->defaultRenderTarget);
+    data->currentRenderTarget = NULL;
+
+    /* Set up parameters for rendering */
+    // D3D_InitRenderState(data);
+
+    if (caps.MaxSimultaneousTextures >= 3) {
+        int i;
+        for (i = 0; i < SDL_arraysize(data->shaders); ++i) {
+            result = D3D9_CreatePixelShader(data->device, (D3D9_Shader)i, &data->shaders[i]);
+            if (FAILED(result)) {
+                D3D_SetError("CreatePixelShader()", result);
+            }
+        }
+        if (data->shaders[SHADER_YUV_JPEG] && data->shaders[SHADER_YUV_BT601] && data->shaders[SHADER_YUV_BT709]) {
+            renderer->info.texture_formats[renderer->info.num_texture_formats++] = SDL_PIXELFORMAT_YV12;
+            renderer->info.texture_formats[renderer->info.num_texture_formats++] = SDL_PIXELFORMAT_IYUV;
+        }
+    }
+    return renderer;
+}
+
 
 /* vi: set ts=4 sw=4 expandtab: */
