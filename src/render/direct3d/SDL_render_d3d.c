@@ -326,8 +326,10 @@ D3D_InitRenderState(D3D_RenderData *data)
     data->beginScene = SDL_TRUE;
 }
 
-static int
-D3D_Reset(SDL_Renderer * renderer)
+extern DECLSPEC int SDLCALL D3D_Reset(SDL_Renderer * renderer, void *pparams);
+
+int
+D3D_Reset(SDL_Renderer * renderer, void *pparams)
 {
     D3D_RenderData *data = (D3D_RenderData *) renderer->driverdata;
     HRESULT result;
@@ -351,6 +353,9 @@ D3D_Reset(SDL_Renderer * renderer)
             D3D_RecreateTexture(renderer, texture);
         }
     }
+
+	if (pparams)
+		data->pparams = *(D3DPRESENT_PARAMETERS*)pparams;
 
     result = IDirect3DDevice9_Reset(data->device, &data->pparams);
     if (FAILED(result)) {
@@ -409,7 +414,7 @@ D3D_ActivateRenderer(SDL_Renderer * renderer)
             data->pparams.BackBufferFormat = D3DFMT_UNKNOWN;
             data->pparams.FullScreen_RefreshRateInHz = 0;
         }
-        if (D3D_Reset(renderer) < 0) {
+        if (D3D_Reset(renderer, NULL) < 0) {
             return -1;
         }
 
@@ -1735,7 +1740,7 @@ D3D_RenderPresent(SDL_Renderer * renderer)
         return;
     }
     if (result == D3DERR_DEVICENOTRESET) {
-        D3D_Reset(renderer);
+        D3D_Reset(renderer, NULL);
     }
     result = IDirect3DDevice9_Present(data->device, NULL, NULL, NULL, NULL);
     if (FAILED(result)) {
